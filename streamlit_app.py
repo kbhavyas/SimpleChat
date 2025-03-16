@@ -131,14 +131,6 @@ if query:
         # Display LLM response
         st.subheader("🤖 AI Generated Response")
         st.write(response)
-✅ Improvements
-✔ Fixed Token Security → No more hardcoded API keys
-✔ Caching with @st.cache_resource → Faster execution
-✔ FAISS + BM25 Proper Combination → Better retrieval
-✔ GPU Optimization → LLM runs on CUDA if available
-✔ Better UX → Users see retrieved documents before AI response
-
-Let me know if you need further tweaks! 🚀
 
 
 
