@@ -8,51 +8,6 @@ from sentence_transformers import CrossEncoder
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-# Load preprocessed data
-#df_cleaned = pd.read_csv("/Users/bhavya.kadiyala/Downloads/financial_data_21_23.csv")  # Replace with actual file
-#
-## Convert dataframe to text chunks
-#text_chunks = df_cleaned.astype(str).apply(lambda row: ' '.join(row), axis=1).tolist()
-#
-## Load pre-trained embedding model
-#model = SentenceTransformer('all-MiniLM-L6-v2')
-#
-## Generate embeddings
-#embeddings = np.array(model.encode(text_chunks))
-#
-## Initialize FAISS index
-#index = faiss.IndexFlatL2(embeddings.shape[1])
-#index.add(embeddings)
-#
-## Tokenize for BM25
-#tokenized_chunks = [chunk.split() for chunk in text_chunks]
-#bm25 = BM25Okapi(tokenized_chunks)
-#
-#def retrieve_similar(query, top_k=5):
-#    # Embedding-based retrieval
-#    query_embedding = np.array(model.encode([query]))
-#    distances, indices = index.search(query_embedding, top_k)
-#    embedding_results = [text_chunks[i] for i in indices[0]]
-#
-#    # BM25 retrieval
-#    bm25_scores = bm25.get_scores(query.split())
-#    bm25_top_indices = np.argsort(bm25_scores)[-top_k:][::-1]
-#    bm25_results = [text_chunks[i] for i in bm25_top_indices]
-#
-#    # Combine and rerank results
-#    combined_results = list(set(embedding_results + bm25_results))
-#    return combined_results
-#
-## Streamlit UI
-#st.title("🔍 Document Retrieval App")
-#query = st.text_input("Enter your search query:")
-#
-#if query:
-#    results = retrieve_similar(query, top_k=5)
-#    st.subheader("Top Matching Results:")
-#    for i, res in enumerate(results, 1):
-#        st.write(f"**{i}.** {res}")
-#
 
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -126,8 +81,6 @@ def retrieve_similar(query, top_k=5):
     distances, indices = index.search(query_embedding, top_k)
     return [text_chunks[i] for i in indices[0]]
 
-# Display first few rows
-df_cleaned.head()
 
 # Initialize BM25 for keyword-based search
 tokenized_chunks = [chunk.split() for chunk in text_chunks]
@@ -148,8 +101,6 @@ def retrieve_similar(query, top_k=5):
     combined_results = list(sorted(embedding_results))
     return rerank_results(query, combined_results)[:top_k]
 
-# Display first few rows
-df_cleaned.head()
 
 
 st.title("🔍 Document Retrieval App")
