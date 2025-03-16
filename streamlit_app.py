@@ -58,8 +58,17 @@ def retrieve_documents(user_query, vector_db, bm25, bm25_chunks):
     
 
 #    embedding_results = vector_db.similarity_search(user_query, k=50)
+    query_embedding = np.array(embedding_model.encode(user_query), dtype=np.float32).reshape(1, -1)
+
+# Search FAISS index (returns distances and indices)
+    distances, indices = faiss_index.search(query_embedding, k=50)
+
+# Retrieve corresponding documents
+
+
     embedding_results = vector_db.search(user_query, k=50)
-    dense_docs = [doc.page_content for doc in embedding_results]
+#    dense_docs = [doc.page_content for doc in embedding_results]
+    dense_docs = [chunks[i].page_content for i in indices[0]]
 
     
     combined_docs = list(set(bm25_docs + dense_docs))  # Merge results
