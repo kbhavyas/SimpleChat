@@ -34,12 +34,14 @@ def process_pdf(pdf_path):
 
 def create_vector_db(chunks):
     """Stores document embeddings in ChromaDB."""
-    embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
-#    vector_db = Chroma.from_documents(chunks, embedding_model, persist_directory="vectordb")
-#    return vector_db, embedding_model
-    embeddings = np.array(embedding_model.encode([doc.page_content for doc in chunks]))
-    fassi_index = faiss.IndexFlatL2(embeddings.shape[1])
-    fassi_index.add(embeddings)
+    texts = [doc.page_content for doc in chunks]  # Ensure doc.page_content is a string
+
+# Convert texts to embeddings
+    embeddings = np.array(embedding_model.encode(texts), dtype=np.float32)  # Convert to float32
+
+# Create FAISS index
+    faiss_index = faiss.IndexFlatL2(embeddings.shape[1])  # L2 (Euclidean) distance
+    faiss_index.add(embeddings)  # Add vectors to index
     return fassi_index, embedding_model
 
 def initialize_bm25(chunks):
