@@ -1,5 +1,7 @@
 streamlit
-openai
 faiss-cpu
 pandas
 numpy
+sentence_transformers
+rank_bm25
+openpyxl
