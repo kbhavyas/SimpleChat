@@ -3,5 +3,6 @@ faiss-cpu
 pandas
 numpy
 sentence_transformers
-rank_bm25
+rank_bm25==0.2.2
 openpyxl
+langchain==0.3.10
