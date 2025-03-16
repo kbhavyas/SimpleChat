@@ -32,8 +32,12 @@ def process_pdf(pdf_path):
 def create_vector_db(chunks):
     """Stores document embeddings in ChromaDB."""
     embedding_model = OllamaEmbeddings(model=EMBEDDING_MODEL, base_url=BASE_URL)
-    vector_db = Chroma.from_documents(chunks, embedding_model, persist_directory="vectordb")
-    return vector_db, embedding_model
+#    vector_db = Chroma.from_documents(chunks, embedding_model, persist_directory="vectordb")
+#    return vector_db, embedding_model
+    vectors = np.array([embedding_model.embed(chunk) for chunk in chunks])
+    fassi_index = FASSI(dim=vectors.shape[1])
+    fassi_index.add(vectors)
+    return fassi_index, embedding_model
 
 def initialize_bm25(chunks):
     """Initializes BM25 with text chunks."""
@@ -47,7 +51,8 @@ def retrieve_documents(user_query, vector_db, bm25, bm25_chunks):
     bm25_docs = [bm25_chunks[idx].page_content for idx, _ in bm25_top_k]
     
 
-    embedding_results = vector_db.similarity_search(user_query, k=50)
+#    embedding_results = vector_db.similarity_search(user_query, k=50)
+    embedding_results = vector_db.search(user_query, k=50)
     dense_docs = [doc.page_content for doc in embedding_results]
 
     
