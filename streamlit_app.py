@@ -109,9 +109,9 @@ index.add(embeddings)
 def load_llm():
     model_name = "distilbert/distilgpt2"  # Change this for other models
     token = "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"
-#    tokenizer = AutoTokenizer.from_pretrained(model_name, token = token, use_fast=False)
+    tokenizer = AutoTokenizer.from_pretrained(model_name, token = token, use_fast=False)
     model = AutoModelForCausalLM.from_pretrained(model_name, token = token)
-#    return model, tokenizer
+    return model, tokenizer
 
 #Rerank combined results
 def rerank_results(query, results):
@@ -154,7 +154,7 @@ df_cleaned.head()
 
 st.title("🔍 Document Retrieval App")
 query = st.text_input("Enter your search query:")
-load_llm()
+llm_model, tokenizer = load_llm()
 #if query:
 #    results = retrieve_similar(query, top_k=5)
 #    st.subheader("Top Matching Results:")
@@ -166,10 +166,10 @@ if query:
     with st.spinner("Generating response..."):
         inputs = tokenizer(query, return_tensors="pt").to("cuda" if torch.cuda.is_available() else "cpu")
 #
-#        with torch.no_grad():
-#            outputs = model.generate(**inputs, max_length=200)
-#
-#        response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+        with torch.no_grad():
+            outputs = llm_model.generate(**inputs, max_length=200)
+
+        response = tokenizer.decode(outputs[0], skip_special_tokens=True)
         
         st.subheader("Answer:")
         st.write(response)
