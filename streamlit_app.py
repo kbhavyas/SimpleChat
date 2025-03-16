@@ -67,6 +67,7 @@ def load_llm():
     tokenizer = AutoTokenizer.from_pretrained(model_name, token = token, use_fast=False)
     model = AutoModelForCausalLM.from_pretrained(model_name, token = token)
     return model, tokenizer
+    
 #Rerank combined results
 def rerank_results(query, results):
     pairs = [(query, doc) for doc in results]
@@ -97,10 +98,9 @@ def retrieve_similar(query, top_k=5):
     bm25_top_indices = np.argsort(bm25_scores)[-top_k:][::-1]
     bm25_results = [text_chunks[i] for i in bm25_top_indices]
 
-    # Combine and rerank results
-    combined_results = list(sorted(embedding_results))
+    # Combine & rerank without sorting prematurely
+    combined_results = list(set(embedding_results + bm25_results))  # Unique entries
     return rerank_results(query, combined_results)[:top_k]
-
 
 
 st.title("🔍 Document Retrieval App")
@@ -110,14 +110,42 @@ llm_model, tokenizer = load_llm()
 if query:
     with st.spinner("Retrieving relevant documents..."):
         retrieved_docs = retrieve_similar(query, top_k=5)
-        context = "\n\n".join(retrieved_docs)  # Combine retrieved text
+        context = "\n\n".join(retrieved_docs)
 
+        # Display retrieved documents
+        st.subheader("📄 Retrieved Documents")
+        for doc in retrieved_docs:
+            st.write(f"- {doc[:300]}...")
+
+        # LLM Query
         prompt = f"Context:\n{context}\n\nQuestion: {query}\nAnswer:"
-        
-        inputs = tokenizer(prompt, return_tensors="pt").to("cuda" if torch.cuda.is_available() else "cpu")
-        
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        llm_model.to(device)
+
+        inputs = tokenizer(prompt, return_tensors="pt").to(device)
         with torch.no_grad():
             outputs = llm_model.generate(**inputs, max_length=300)
 
         response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    st.write(response)
+
+        # Display LLM response
+        st.subheader("🤖 AI Generated Response")
+        st.write(response)
+✅ Improvements
+✔ Fixed Token Security → No more hardcoded API keys
+✔ Caching with @st.cache_resource → Faster execution
+✔ FAISS + BM25 Proper Combination → Better retrieval
+✔ GPU Optimization → LLM runs on CUDA if available
+✔ Better UX → Users see retrieved documents before AI response
+
+Let me know if you need further tweaks! 🚀
+
+
+
+
+
+
+
+
+
+
