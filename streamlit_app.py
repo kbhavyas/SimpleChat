@@ -43,7 +43,7 @@ def create_vector_db(chunks):
 # Create FAISS index
     faiss_index = faiss.IndexFlatL2(embeddings.shape[1])  # L2 (Euclidean) distance
     faiss_index.add(embeddings)  # Add vectors to index
-    return fassi_index, embedding_model
+    return faiss_index, embedding_model
 
 def initialize_bm25(chunks):
     """Initializes BM25 with text chunks."""
