@@ -1,5 +1,6 @@
 import streamlit as st
 import os
+import numpy as np
 from langchain.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import OllamaEmbeddings
