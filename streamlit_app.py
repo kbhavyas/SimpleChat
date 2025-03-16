@@ -10,6 +10,7 @@ from langchain_community.llms import Ollama
 from rank_bm25 import BM25Okapi  # BM25 retrieval
 from langchain_cohere import CohereRerank  # Re-ranking
 from sentence_transformers import SentenceTransformer
+import faiss
 
 import getpass
 import os
@@ -36,9 +37,9 @@ def create_vector_db(chunks):
     embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 #    vector_db = Chroma.from_documents(chunks, embedding_model, persist_directory="vectordb")
 #    return vector_db, embedding_model
-    vectors = np.array(embedding_model.encode([doc.page_content for doc in chunks]))
-    fassi_index = FASSI(dim=vectors.shape[1])
-    fassi_index.add(vectors)
+    embeddings = np.array(embedding_model.encode([doc.page_content for doc in chunks]))
+    fassi_index = faiss.IndexFlatL2(embeddings.shape[1])
+    fassi_index.add(embeddings)
     return fassi_index, embedding_model
 
 def initialize_bm25(chunks):
