@@ -17,4 +17,5 @@ langchain-tests==0.3.11
 langchain-text-splitters==0.3.6
 langchain-unstructured==0.1.5
 langchainhub==0.1.21
+chromadb==0.5.23
 
