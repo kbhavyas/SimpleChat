@@ -155,21 +155,21 @@ df_cleaned.head()
 st.title("🔍 Document Retrieval App")
 query = st.text_input("Enter your search query:")
 llm_model, tokenizer = load_llm()
-#if query:
-#    results = retrieve_similar(query, top_k=5)
-#    st.subheader("Top Matching Results:")
-#    st.write(f"**.** {results}")
-#    for i, res in enumerate(results, 1):
-#        st.write(f"**{i}.** {res}")
 
 if query:
+   with st.spinner("Retrieving relevant documents..."):
+        retrieved_docs = retrieve_similar(query, top_k=5)
+        context = "\n\n".join(retrieved_docs)  # Combine retrieved text
+
     with st.spinner("Generating response..."):
-        inputs = tokenizer(query, return_tensors="pt").to("cuda" if torch.cuda.is_available() else "cpu")
-#
+        prompt = f"Context:\n{context}\n\nQuestion: {query}\nAnswer:"
+        
+        inputs = tokenizer(prompt, return_tensors="pt").to("cuda" if torch.cuda.is_available() else "cpu")
+        
         with torch.no_grad():
-            outputs = llm_model.generate(**inputs, max_length=200)
+            outputs = llm_model.generate(**inputs, max_length=300)
 
         response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-        
-        st.subheader("Answer:")
-        st.write(response)
+
+    st.subheader("Answer:")
+    st.write(response)
