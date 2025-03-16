@@ -11,5 +11,6 @@ langchain-cohere
 langchain-community
 langchain-ollama
 langchain-cli
+pysqlite3-binary==3.36.0
 
 
