@@ -9,6 +9,7 @@ from langchain.prompts import PromptTemplate
 from langchain_community.llms import Ollama
 from rank_bm25 import BM25Okapi  # BM25 retrieval
 from langchain_cohere import CohereRerank  # Re-ranking
+from sentence_transformers import SentenceTransformer
 
 import getpass
 import os
@@ -32,7 +33,7 @@ def process_pdf(pdf_path):
 
 def create_vector_db(chunks):
     """Stores document embeddings in ChromaDB."""
-    embedding_model = OllamaEmbeddings(model=EMBEDDING_MODEL, base_url=BASE_URL)
+    embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 #    vector_db = Chroma.from_documents(chunks, embedding_model, persist_directory="vectordb")
 #    return vector_db, embedding_model
     vectors = np.array(embedding_model.embed_documents(chunks))
