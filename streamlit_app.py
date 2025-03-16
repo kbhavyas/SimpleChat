@@ -169,5 +169,4 @@ if query:
             outputs = llm_model.generate(**inputs, max_length=300)
 
         response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    st.subheader("Answer:")
     st.write(response)
