@@ -10,6 +10,6 @@ langchain-chroma
 langchain-cohere
 langchain-community
 langchain-ollama
-chromadb
+langchain-cli
 
 
