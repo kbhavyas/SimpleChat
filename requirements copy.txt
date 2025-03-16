@@ -11,5 +11,5 @@ langchain-cohere
 langchain-community
 langchain-ollama
 langchain-cli
-
+pypdf
 
