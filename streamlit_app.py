@@ -1,143 +1,100 @@
 import streamlit as st
-import faiss
-import numpy as np
-import pandas as pd
-from sentence_transformers import SentenceTransformer
-from rank_bm25 import BM25Okapi
-from sentence_transformers import CrossEncoder
-import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
-
-
 import os
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
-os.environ["OMP_NUM_THREADS"] = "1"
-os.environ["MKL_NUM_THREADS"] = "1"
+from langchain.document_loaders import PyPDFLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.embeddings import OllamaEmbeddings
+from langchain_community.vectorstores import Chroma
+from langchain.prompts import PromptTemplate
+from langchain_community.llms import Ollama
+from rank_bm25 import BM25Okapi  # BM25 retrieval
+from langchain_cohere import CohereRerank  # Re-ranking
 
-#uploaded = files.upload()
-file_path =  "financial_data_21_23.xlsx" # Get the uploaded file name
-
-def load_and_clean_data(file_path):
-    # Load Excel file
-    df = pd.read_excel(file_path)
-
-    # Standardizing column names (removing spaces, converting to lowercase)
-    df.columns = df.columns.str.strip().str.lower().str.replace(' ', '_')
-
-    # Converting date column to datetime format
-    df['date'] = pd.to_datetime(df['date'], errors='coerce')
-
-    # Removing commas and converting numeric columns to float
-    numeric_cols = ['open', 'high', 'low', 'close', 'adj_close', 'volume']
-    for col in numeric_cols:
-        df[col] = df[col].astype(str).str.replace(',', '')  # Remove commas
-        df[col] = pd.to_numeric(df[col], errors='coerce')   # Convert to float
-
-    # Drop rows with missing values
-    df = df.dropna()
-
-    # Sorting by date (most recent first)
-    df = df.sort_values(by='date', ascending=False)
-
-    return df
-
-# Load and clean the data
-df_cleaned = load_and_clean_data(file_path)
-
-# Display first few rows
-df_cleaned.head()
-
-# Convert financial data to text chunks
-text_chunks = df_cleaned.astype(str).apply(lambda row: ' '.join(row), axis=1).tolist()
-
-# Load pre-trained embedding model
-model = SentenceTransformer('all-MiniLM-L6-v2')
-
-# Generate embeddings
-embeddings = np.array(model.encode(text_chunks))
-
-# Initialize FAISS index
-index = faiss.IndexFlatL2(embeddings.shape[1])
-index.add(embeddings)
+import getpass
+import os
 
 
-def load_llm():
-    model_name = "distilbert/distilgpt2"  # Change this for other models
-    token = "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"
-    tokenizer = AutoTokenizer.from_pretrained(model_name, token = token, use_fast=False)
-    model = AutoModelForCausalLM.from_pretrained(model_name, token = token)
-    return model, tokenizer
+if "COHERE_API_KEY" not in os.environ:
+    os.environ["COHERE_API_KEY"] = "ffrkCXytXzNJ0XoA1LqJCSmk0ZhAhY9aq33q5msI"
+
+
+# Initialize Embeddings & LLM
+EMBEDDING_MODEL = "all-minilm:latest"
+LLM_MODEL = "llama3:latest"
+BASE_URL = "http://localhost:11434"
+
+def process_pdf(pdf_path):
+    """Loads and splits a PDF into text chunks."""
+    loader = PyPDFLoader(pdf_path)
+    documents = loader.load()
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=100)
+    return text_splitter.split_documents(documents)
+
+def create_vector_db(chunks):
+    """Stores document embeddings in ChromaDB."""
+    embedding_model = OllamaEmbeddings(model=EMBEDDING_MODEL, base_url=BASE_URL)
+    vector_db = Chroma.from_documents(chunks, embedding_model, persist_directory="vectordb")
+    return vector_db, embedding_model
+
+def initialize_bm25(chunks):
+    """Initializes BM25 with text chunks."""
+    tokenized_corpus = [doc.page_content.split() for doc in chunks]
+    return BM25Okapi(tokenized_corpus), chunks
+
+def retrieve_documents(user_query, vector_db, bm25, bm25_chunks):
+    """Performs hybrid retrieval (BM25 + embeddings) and re-ranks results."""
+    bm25_scores = bm25.get_scores(user_query.split())
+    bm25_top_k = sorted(enumerate(bm25_scores), key=lambda x: x[1], reverse=True)[:50]
+    bm25_docs = [bm25_chunks[idx].page_content for idx, _ in bm25_top_k]
     
-#Rerank combined results
-def rerank_results(query, results):
-    pairs = [(query, doc) for doc in results]
-    reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
-    scores = reranker.predict(pairs)
-    ranked_results = [doc for _, doc in sorted(zip(scores, results), reverse=True)]
-    return ranked_results
 
-# Function to retrieve similar documents
-def retrieve_similar(query, top_k=5):
-    query_embedding = np.array(model.encode([query]))
-    distances, indices = index.search(query_embedding, top_k)
-    return [text_chunks[i] for i in indices[0]]
+    embedding_results = vector_db.similarity_search(user_query, k=50)
+    dense_docs = [doc.page_content for doc in embedding_results]
 
+    
+    combined_docs = list(set(bm25_docs + dense_docs))  # Merge results
+    
+    reranker = CohereRerank(model='rerank-english-v3.0')
+    reranked_results = reranker.rerank(combined_docs, user_query)
 
-# Initialize BM25 for keyword-based search
-tokenized_chunks = [chunk.split() for chunk in text_chunks]
-bm25 = BM25Okapi(tokenized_chunks)
+    return [combined_docs[dict['index']] for dict in reranked_results][:5] # Return top 5 re-ranked docs
 
-def retrieve_similar(query, top_k=5):
-    # Embedding-based retrieval
-    query_embedding = np.array(model.encode([query]))
-    distances, indices = index.search(query_embedding, top_k)
-    embedding_results = [text_chunks[i] for i in indices[0]]
-
-    # BM25 retrieval
-    bm25_scores = bm25.get_scores(query.split())
-    bm25_top_indices = np.argsort(bm25_scores)[-top_k:][::-1]
-    bm25_results = [text_chunks[i] for i in bm25_top_indices]
-
-    # Combine & rerank without sorting prematurely
-    combined_results = list(set(embedding_results + bm25_results))  # Unique entries
-    return rerank_results(query, combined_results)[:top_k]
+def ask_question(user_query, vector_db, bm25, bm25_chunks, llm):
+    """Retrieves and generates a response for the given question."""
+    retrieved_docs = retrieve_documents(user_query, vector_db, bm25, bm25_chunks)
+    print("ret-----", retrieved_docs)
+    context = "\n\n".join(retrieved_docs)
+    
+    prompt_template = PromptTemplate(
+        input_variables=["context", "question"],
+        template="{context} ---- Given the context above, answer the following question with given context only : {question}"
+    )
+    final_prompt = prompt_template.format(context=context, question=user_query)
+    
+    return llm(final_prompt)
 
 
-st.title("🔍 Document Retrieval App")
-query = st.text_input("Enter your search query:")
-llm_model, tokenizer = load_llm()
 
-if query:
-    with st.spinner("Retrieving relevant documents..."):
-        retrieved_docs = retrieve_similar(query, top_k=5)
-        context = "\n\n".join(retrieved_docs)
-
-        # Display retrieved documents
-        st.subheader("📄 Retrieved Documents")
-        for doc in retrieved_docs:
-            st.write(f"- {doc[:300]}...")
-
-        # LLM Query
-        prompt = f"Context:\n{context}\n\nQuestion: {query}\nAnswer:"
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        llm_model.to(device)
-
-        inputs = tokenizer(prompt, return_tensors="pt").to(device)
-        with torch.no_grad():
-            outputs = llm_model.generate(**inputs, max_length=300)
-
-        response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-
-        # Display LLM response
-        st.subheader("🤖 AI Generated Response")
-        st.write(response)
+st.title("🔍 ChromaQA: Financial Document Search")
+pdf_path = "/Users/shyam/Downloads/10-Q4-2024-As-Filed.pdf"
 
 
 
 
+st.info("📖 Processing document...")
+chunks = process_pdf(pdf_path)
+vector_db, embedding_model = create_vector_db(chunks)
+bm25, bm25_chunks = initialize_bm25(chunks)
+llm = Ollama(model=LLM_MODEL, base_url=BASE_URL)
 
+st.success("✅ Data successfully ingested into ChromaDB!")
+st.subheader("💬 Ask a Question")
+user_query = st.text_input("Type your question here...")
 
-
-
-
-
+if st.button("Get Answer"):
+    if user_query:
+        with st.spinner("🔍 Searching for the best answer..."):
+            answer = ask_question(user_query, vector_db, bm25, bm25_chunks, llm)
+        st.success("✅ Answer retrieved!")
+        st.write("**🔹 Answer:**", answer)
+    else:
+        st.warning("⚠️ Please enter a question.")
