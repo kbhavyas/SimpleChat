@@ -161,7 +161,6 @@ if query:
         retrieved_docs = retrieve_similar(query, top_k=5)
         context = "\n\n".join(retrieved_docs)  # Combine retrieved text
 
-    with st.spinner("Generating response..."):
         prompt = f"Context:\n{context}\n\nQuestion: {query}\nAnswer:"
         
         inputs = tokenizer(prompt, return_tensors="pt").to("cuda" if torch.cuda.is_available() else "cpu")
