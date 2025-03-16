@@ -6,10 +6,3 @@ sentence_transformers
 rank_bm25
 openpyxl
 langchain
-langchain-chroma
-langchain-cohere
-langchain-community
-langchain-ollama
-langchain-cli
-
-
