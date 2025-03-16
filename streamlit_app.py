@@ -112,10 +112,10 @@ def load_llm():
     tokenizer = AutoTokenizer.from_pretrained(model_name, token = token, use_fast=False)
     model = AutoModelForCausalLM.from_pretrained(model_name, token = token)
     return model, tokenizer
-reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 #Rerank combined results
 def rerank_results(query, results):
     pairs = [(query, doc) for doc in results]
+    reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
     scores = reranker.predict(pairs)
     ranked_results = [doc for _, doc in sorted(zip(scores, results), reverse=True)]
     return ranked_results
