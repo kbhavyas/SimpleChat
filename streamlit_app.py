@@ -157,7 +157,7 @@ query = st.text_input("Enter your search query:")
 llm_model, tokenizer = load_llm()
 
 if query:
-   with st.spinner("Retrieving relevant documents..."):
+    with st.spinner("Retrieving relevant documents..."):
         retrieved_docs = retrieve_similar(query, top_k=5)
         context = "\n\n".join(retrieved_docs)  # Combine retrieved text
 
@@ -169,6 +169,5 @@ if query:
             outputs = llm_model.generate(**inputs, max_length=300)
 
         response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-
     st.subheader("Answer:")
     st.write(response)
