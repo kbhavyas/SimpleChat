@@ -35,7 +35,7 @@ def create_vector_db(chunks):
     embedding_model = OllamaEmbeddings(model=EMBEDDING_MODEL, base_url=BASE_URL)
 #    vector_db = Chroma.from_documents(chunks, embedding_model, persist_directory="vectordb")
 #    return vector_db, embedding_model
-    vectors = np.array([embedding_model.embed(chunk) for chunk in chunks])
+    vectors = np.array(embedding_model.embed_documents(chunks))
     fassi_index = FASSI(dim=vectors.shape[1])
     fassi_index.add(vectors)
     return fassi_index, embedding_model
