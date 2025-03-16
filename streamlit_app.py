@@ -75,7 +75,7 @@ def ask_question(user_query, vector_db, bm25, bm25_chunks, llm):
 
 
 st.title("🔍 ChromaQA: Financial Document Search")
-pdf_path = "/Users/shyam/Downloads/10-Q4-2024-As-Filed.pdf"
+pdf_path = "10-Q4-2024-As-Filed.pdf"
 
 
 
