@@ -36,7 +36,7 @@ def create_vector_db(chunks):
     embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 #    vector_db = Chroma.from_documents(chunks, embedding_model, persist_directory="vectordb")
 #    return vector_db, embedding_model
-    vectors = np.array(embedding_model.encode(chunks))
+    vectors = np.array(embedding_model.encode([doc.page_content for doc in chunks]))
     fassi_index = FASSI(dim=vectors.shape[1])
     fassi_index.add(vectors)
     return fassi_index, embedding_model
