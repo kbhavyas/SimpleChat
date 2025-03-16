@@ -34,6 +34,7 @@ def process_pdf(pdf_path):
 
 def create_vector_db(chunks):
     """Stores document embeddings in ChromaDB."""
+    embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
     texts = [doc.page_content for doc in chunks]  # Ensure doc.page_content is a string
 
 # Convert texts to embeddings
